@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometría de las curvas de costos — Interactivo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- SCRIPTS: React, Recharts, Babel -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+
+<style>
+  body { margin: 0; padding: 0; }
+  /* Opcional: Estilo de carga */
+  #root:empty::after {
+    content: "Cargando aplicación interactiva...";
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'DM Sans', sans-serif;
+    color: #94A3B8;
+    background: #0B0F1A;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, Fragment } = React;
+const { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, ReferenceLine, ComposedChart, ReferenceDot 
+} = Recharts;
+
+const C = {
+  bg: "#0B0F1A", card: "#111827", border: "#1E293B",
+  text: "#E2E8F0", textMuted: "#94A3B8", textDim: "#64748B",
+  accent: "#F59E0B", accentSoft: "#F59E0B33",
+  blue: "#3B82F6", green: "#10B981", red: "#EF4444",
+  purple: "#A78BFA", cyan: "#06B6D4", orange: "#F97316",
+  white: "#FFFFFF",
+};
+
+// COST DATA: VC = 0.05q³ - 1.5q² + 20q
+function generateCostData() {
+  const FC = 200;
+  const data = [];
+  for (let q = 1; q <= 35; q++) {
+    const VC = 0.05 * q * q * q - 1.5 * q * q + 20 * q;
+    const TC = FC + Math.max(VC, 0);
+    const AFC = FC / q;
+    const AVC = 0.05 * q * q - 1.5 * q + 20;
+    const ATC = AFC + AVC;
+    const MC = 0.15 * q * q - 3 * q + 20;
+    data.push({ q, FC, VC: Math.max(VC, 0), TC, AFC, AVC: Math.max(AVC, 0), ATC, MC: Math.max(MC, 0) });
+  }
+  return data;
+}
+
+function generateProductionData() {
+  const data = [];
+  for (let L = 1; L <= 40; L++) {
+    const Q = -0.015 * L * L * L + 0.9 * L * L + 2 * L;
+    data.push({ L, Q: Math.max(Q, 0) });
+  }
+  return data;
+}
+
+const PLANT_DEFS = [
+  { center: 5, min: 9.0, a: 0.12, lo: 1, hi: 18, color: "#EF4444", label: "P1" },
+  { center: 12, min: 6.5, a: 0.07, lo: 3, hi: 26, color: "#F97316", label: "P2" },
+  { center: 20, min: 4.8, a: 0.04, lo: 8, hi: 35, color: "#EAB308", label: "P3" },
+  { center: 28, min: 3.8, a: 0.025, lo: 14, hi: 44, color: "#10B981", label: "P4" },
+  { center: 36, min: 3.2, a: 0.018, lo: 20, hi: 52, color: "#06B6D4", label: "P5" },
+  { center: 44, min: 3.0, a: 0.015, lo: 28, hi: 60, color: "#3B82F6", label: "P6" },
+  { center: 52, min: 3.3, a: 0.018, lo: 36, hi: 66, color: "#8B5CF6", label: "P7" },
+  { center: 60, min: 4.0, a: 0.022, lo: 44, hi: 72, color: "#EC4899", label: "P8" },
+];
+
+function sracVal(p, q) { return p.a * (q - p.center) ** 2 + p.min; }
+
+function generateEnvelopeData() {
+  const data = [];
+  for (let q = 1; q <= 72; q++) {
+    const row = { q };
+    let best = Infinity;
+    PLANT_DEFS.forEach((p, i) => {
+      const v = sracVal(p, q);
+      row["S" + (i + 1)] = (q >= p.lo && q <= p.hi) ? v : undefined;
+      if (v < best) best = v;
+    });
+    row.LRAC = best;
+    data.push(row);
+  }
+  return data;
+}
+
+const SECTIONS = [
+  { id: "intro", label: "Introducción", icon: "📐" },
+  { id: "prod", label: "Producción → Costos", icon: "🔄" },
+  { id: "total", label: "Costos Totales CP", icon: "📈" },
+  { id: "avg", label: "Medios y Marginales", icon: "📊" },
+  { id: "cross", label: "Intersecciones", icon: "🔗" },
+  { id: "lp", label: "Largo Plazo", icon: "🔭" },
+  { id: "env", label: "La Envolvente", icon: "✨" },
+];
+
+const Tip = ({ active, payload, label, prefix = "q" }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.text, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+      <div style={{ color: C.accent, fontWeight: 600, marginBottom: 4 }}>{prefix} = {label}</div>
+      {payload.filter(p => p.value != null).map((p, i) => (
+        <div key={i} style={{ color: p.color, marginTop: 2 }}>{p.name}: <b>{typeof p.value === "number" ? p.value.toFixed(2) : p.value}</b></div>
+      ))}
+    </div>
+  );
+};
+
+function Box({ icon = "💡", children, color = C.accent }) {
+  return (
+    <div style={{ background: color + "11", border: `1px solid ${color}33`, borderRadius: 10, padding: "16px 18px", marginTop: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <div style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.65 }}>{children}</div>
+    </div>
+  );
+}
+
+function Tog({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+      <button onClick={() => setOpen(!open)} style={{ width: "100%", background: "transparent", border: "none", color: C.text, padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 500, textAlign: "left" }}>
+        <span style={{ transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", fontSize: 12, color: C.textDim }}>▶</span>
+        {title}
+      </button>
+      {open && <div style={{ padding: "0 18px 16px 42px", color: C.textMuted, fontSize: 13, lineHeight: 1.65 }}>{children}</div>}
+    </div>
+  );
+}
+
+function Btn({ on, color, children, onClick }) {
+  return <button onClick={onClick} style={{ background: on ? color + "22" : "transparent", border: `1px solid ${on ? color : C.border}`, color: on ? color : C.textDim, padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500 }}>{children}</button>;
+}
+
+// ═══════════ SECTIONS ═══════════
+
+function IntroSection() {
+  return (
+    <div style={{ maxWidth: 780, margin: "0 auto" }}>
+      <div style={{ marginBottom: 8, fontSize: 11, color: C.textDim, letterSpacing: 1, textTransform: "uppercase" }}>EIE 524-01/2025 · Mercado Eléctrico · Unidad II</div>
+      <h2 style={{ fontSize: 30, fontWeight: 300, color: C.accent, marginBottom: 12 }}>📐 Geometría de las curvas de costos</h2>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.75, marginBottom: 20 }}>
+        Existe una <strong style={{ color: C.text }}>relación directa entre la función de producción y la función de costos</strong>. El corto plazo se define como el período en el que una empresa no puede variar las cantidades de planta y equipos — los <em>insumos fijos</em> que determinan la escala de la planta.
+      </p>
+      <Tog title="Costos fijos totales">Los costos de insumos fijos, constantes independientemente del nivel de producción.</Tog>
+      <Tog title="Costos variables totales">Costos en insumos variables. Se incrementan con la producción.</Tog>
+      <Tog title="Costos totales">Suma de fijos y variables. Su comportamiento depende de la productividad.</Tog>
+    </div>
+  );
+}
+
+function ProdSection() {
+  const prodData = useMemo(() => generateProductionData(), []);
+  const costData = useMemo(() => generateCostData(), []);
+  const [showProd, setShowProd] = useState(true);
+  return (
+    <div>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>De la producción al costo variable</h2>
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <Btn on={showProd} color={C.green} onClick={() => setShowProd(true)}>Función de Producción</Btn>
+        <Btn on={!showProd} color={C.orange} onClick={() => setShowProd(false)}>Curva de Costo Variable</Btn>
+      </div>
+      <ResponsiveContainer width="100%" height={340}>
+        {showProd ? (
+          <LineChart data={prodData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+            <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+            <XAxis dataKey="L" stroke={C.textDim} fontSize={11} label={{ value: "Trabajo (L)", position: "insideBottom", offset: -5, fill: C.textDim, fontSize: 11 }} />
+            <YAxis stroke={C.textDim} fontSize={11} />
+            <Tooltip content={<Tip prefix="L" />} />
+            <Line type="monotone" dataKey="Q" stroke={C.green} strokeWidth={2.5} dot={false} name="Q = f(L)" />
+            <ReferenceLine x={20} stroke={C.accent} strokeDasharray="6 3" label={{ value: "Inflexión", fill: C.accent, fontSize: 10, position: "top" }} />
+          </LineChart>
+        ) : (
+          <LineChart data={costData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+            <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+            <XAxis dataKey="q" stroke={C.textDim} fontSize={11} label={{ value: "Producción (q)", position: "insideBottom", offset: -5, fill: C.textDim, fontSize: 11 }} />
+            <YAxis stroke={C.textDim} fontSize={11} />
+            <Tooltip content={<Tip />} />
+            <Line type="monotone" dataKey="VC" stroke={C.orange} strokeWidth={2.5} dot={false} name="CV" />
+            <ReferenceLine x={15} stroke={C.accent} strokeDasharray="6 3" label={{ value: "Inflexión", fill: C.accent, fontSize: 10, position: "top" }} />
+          </LineChart>
+        )}
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function TotalSection() {
+  const data = useMemo(() => generateCostData(), []);
+  const [s, setS] = useState({ f: true, v: true, t: true });
+  return (
+    <div>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Costos totales de corto plazo</h2>
+      <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+        <Btn on={s.f} color={C.purple} onClick={() => setS(p => ({ ...p, f: !p.f }))}>CF</Btn>
+        <Btn on={s.v} color={C.orange} onClick={() => setS(p => ({ ...p, v: !p.v }))}>CV</Btn>
+        <Btn on={s.t} color={C.blue} onClick={() => setS(p => ({ ...p, t: !p.t }))}>CT</Btn>
+      </div>
+      <ResponsiveContainer width="100%" height={360}>
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+          <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+          <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
+          <YAxis stroke={C.textDim} fontSize={11} />
+          <Tooltip content={<Tip />} />
+          {s.f && <Line type="monotone" dataKey="FC" stroke={C.purple} strokeWidth={2} dot={false} name="CF" strokeDasharray="8 4" />}
+          {s.v && <Line type="monotone" dataKey="VC" stroke={C.orange} strokeWidth={2.5} dot={false} name="CV" />}
+          {s.t && <Line type="monotone" dataKey="TC" stroke={C.blue} strokeWidth={2.5} dot={false} name="CT" />}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function AvgSection() {
+  const data = useMemo(() => generateCostData(), []);
+  const [q, setQ] = useState(15);
+  const [h, setH] = useState(null);
+  const d = data[q - 1];
+  const op = (k) => h && h !== k ? 0.12 : 1;
+  const sw = (k) => (!h || h === k) ? 3 : 1;
+  return (
+    <div>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Costos medios y marginales</h2>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <Btn on={h === "afc"} color={C.purple} onClick={() => setH(h === "afc" ? null : "afc")}>CFMe</Btn>
+        <Btn on={h === "avc"} color={C.green} onClick={() => setH(h === "avc" ? null : "avc")}>CVMe</Btn>
+        <Btn on={h === "atc"} color={C.blue} onClick={() => setH(h === "atc" ? null : "atc")}>CTMe</Btn>
+        <Btn on={h === "mc"} color={C.red} onClick={() => setH(h === "mc" ? null : "mc")}>CMg</Btn>
+      </div>
+      <ResponsiveContainer width="100%" height={400}>
+        <LineChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+          <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+          <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
+          <YAxis stroke={C.textDim} fontSize={11} domain={[0, 55]} />
+          <Tooltip content={<Tip />} />
+          <Line type="monotone" dataKey="AFC" stroke={C.purple} strokeWidth={sw("afc")} dot={false} opacity={op("afc")} />
+          <Line type="monotone" dataKey="AVC" stroke={C.green} strokeWidth={sw("avc")} dot={false} opacity={op("avc")} />
+          <Line type="monotone" dataKey="ATC" stroke={C.blue} strokeWidth={sw("atc")} dot={false} opacity={op("atc")} />
+          <Line type="monotone" dataKey="MC" stroke={C.red} strokeWidth={sw("mc")} dot={false} opacity={op("mc")} />
+          {!h && <ReferenceDot x={15} y={8.75} r={7} fill={C.green} stroke={C.white} strokeWidth={2} />}
+          {!h && <ReferenceDot x={20} y={18.75} r={7} fill={C.blue} stroke={C.white} strokeWidth={2} />}
+          <ReferenceLine x={q} stroke={C.accent} strokeWidth={1} strokeDasharray="3 3" opacity={0.5} />
+        </LineChart>
+      </ResponsiveContainer>
+      <input type="range" min={1} max={35} value={q} onChange={e => setQ(+e.target.value)} style={{ width: "100%", accentColor: C.accent, marginTop: 10 }} />
+    </div>
+  );
+}
+
+function CrossSection() {
+  const data = useMemo(() => generateCostData(), []);
+  return (
+    <div>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Intersecciones Críticas</h2>
+      <ResponsiveContainer width="100%" height={420}>
+        <LineChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
+          <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+          <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
+          <YAxis stroke={C.textDim} fontSize={11} domain={[0, 50]} />
+          <Tooltip content={<Tip />} />
+          <Line type="monotone" dataKey="AVC" stroke={C.green} strokeWidth={2.5} dot={false} />
+          <Line type="monotone" dataKey="ATC" stroke={C.blue} strokeWidth={2.5} dot={false} />
+          <Line type="monotone" dataKey="MC" stroke={C.red} strokeWidth={3} dot={false} />
+          <ReferenceDot x={15} y={8.75} r={8} fill={C.green} stroke={C.white} strokeWidth={2.5} />
+          <ReferenceDot x={20} y={18.75} r={8} fill={C.blue} stroke={C.white} strokeWidth={2.5} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function LPSection() {
+  return (
+    <div style={{ maxWidth: 780, margin: "0 auto" }}>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 12 }}>Largo Plazo</h2>
+      <p style={{ color: C.textMuted, fontSize: 14 }}>En el largo plazo todos los costos son variables. No existen costos fijos.</p>
+    </div>
+  );
+}
+
+function EnvSection() {
+  const data = useMemo(() => generateEnvelopeData(), []);
+  const [qD, setQD] = useState(30);
+  const pt = data[qD - 1];
+  return (
+    <div>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>La Envolvente</h2>
+      <ResponsiveContainer width="100%" height={440}>
+        <LineChart data={data} margin={{ top: 15, right: 30, left: 10, bottom: 10 }}>
+          <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+          <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
+          <YAxis stroke={C.textDim} fontSize={11} domain={[0, 14]} />
+          <Tooltip content={<Tip />} />
+          <Line type="monotone" dataKey="LRAC" stroke={C.accent} strokeWidth={3.5} dot={false} />
+          <ReferenceLine x={qD} stroke={C.white} strokeWidth={1} strokeDasharray="3 3" opacity={0.3} />
+        </LineChart>
+      </ResponsiveContainer>
+      <input type="range" min={1} max={72} value={qD} onChange={e => setQD(+e.target.value)} style={{ width: "100%", accentColor: C.accent, marginTop: 10 }} />
+    </div>
+  );
+}
+
+function App() {
+  const [sec, setSec] = useState("intro");
+  const render = () => {
+    switch (sec) {
+      case "intro": return <IntroSection />;
+      case "prod": return <ProdSection />;
+      case "total": return <TotalSection />;
+      case "avg": return <AvgSection />;
+      case "cross": return <CrossSection />;
+      case "lp": return <LPSection />;
+      case "env": return <EnvSection />;
+      default: return <IntroSection />;
+    }
+  };
+  const idx = SECTIONS.findIndex(s => s.id === sec);
+  const prev = idx > 0 ? SECTIONS[idx - 1] : null;
+  const next = idx < SECTIONS.length - 1 ? SECTIONS[idx + 1] : null;
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 100, background: C.bg + "ee", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.border}`, padding: "10px 20px" }}>
+        <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          {SECTIONS.map(s => (
+            <button key={s.id} onClick={() => setSec(s.id)} style={{ background: sec === s.id ? C.accent + "22" : "transparent", border: "none", color: sec === s.id ? C.accent : C.textDim, padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: sec === s.id ? 600 : 400 }}>{s.label}</button>
+          ))}
+        </div>
+      </header>
+      <main style={{ maxWidth: 860, margin: "0 auto", padding: "36px 20px" }}>
+        {render()}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 36 }}>
+          {prev && <button onClick={() => setSec(prev.id)} style={{ color: C.textDim, background: "transparent", border: "none", cursor: "pointer" }}>← Atrás</button>}
+          {next && <button onClick={() => setSec(next.id)} style={{ color: C.accent, background: "transparent", border: "none", cursor: "pointer" }}>Siguiente →</button>}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
