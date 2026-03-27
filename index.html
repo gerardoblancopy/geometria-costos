@@ -46,7 +46,11 @@ const C = {
   white: "#FFFFFF",
 };
 
+// ═══════════════════════════════════════
 // COST DATA: VC = 0.05q³ - 1.5q² + 20q
+// AVC min at q=15 (8.75), MC=AVC there
+// ATC min at q=20 (18.75), MC=ATC there
+// ═══════════════════════════════════════
 function generateCostData() {
   const FC = 200;
   const data = [];
@@ -71,6 +75,7 @@ function generateProductionData() {
   return data;
 }
 
+// 8 SRAC plants for envelope
 const PLANT_DEFS = [
   { center: 5, min: 9.0, a: 0.12, lo: 1, hi: 18, color: "#EF4444", label: "P1" },
   { center: 12, min: 6.5, a: 0.07, lo: 3, hi: 26, color: "#F97316", label: "P2" },
@@ -100,6 +105,7 @@ function generateEnvelopeData() {
   return data;
 }
 
+// ═══════════════════════════════════════
 const SECTIONS = [
   { id: "intro", label: "Introducción", icon: "📐" },
   { id: "prod", label: "Producción → Costos", icon: "🔄" },
@@ -156,11 +162,15 @@ function IntroSection() {
       <div style={{ marginBottom: 8, fontSize: 11, color: C.textDim, letterSpacing: 1, textTransform: "uppercase" }}>EIE 524-01/2025 · Mercado Eléctrico · Unidad II</div>
       <h2 style={{ fontSize: 30, fontWeight: 300, color: C.accent, marginBottom: 12 }}>📐 Geometría de las curvas de costos</h2>
       <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.75, marginBottom: 20 }}>
-        Existe una <strong style={{ color: C.text }}>relación directa entre la función de producción y la función de costos</strong>. El corto plazo se define como el período en el que una empresa no puede variar las cantidades de planta y equipos — los <em>insumos fijos</em> que determinan la escala de la planta.
+        Existe una <strong style={{ color: C.text }}>relación directa entre la función de producción y la función de costos</strong>. El corto plazo se define como el período en el que una empresa no puede variar las cantidades de planta y equipos — los <em>insumos fijos</em> que determinan la escala de la planta. La duración del corto plazo depende del tipo de industria.
       </p>
-      <Tog title="Costos fijos totales">Los costos de insumos fijos, constantes independientemente del nivel de producción.</Tog>
-      <Tog title="Costos variables totales">Costos en insumos variables. Se incrementan con la producción.</Tog>
-      <Tog title="Costos totales">Suma de fijos y variables. Su comportamiento depende de la productividad.</Tog>
+      <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 16 }}>Tres conceptos de costos son importantes en el corto plazo:</p>
+      <Tog title="Costos fijos totales">En el corto plazo, puesto que la cantidad de insumos fijos es fija, independientemente del nivel de producción de la empresa, los costos fijos totales serán constantes.</Tog>
+      <Tog title="Costos variables totales">Los costos totales variables son el total de costos incurridos por la empresa en insumos variables. Se incrementan a medida que se incrementa la producción.</Tog>
+      <Tog title="Costos totales">Es importante analizar la relación entre producción y costos pues según se comporte la productividad del factor variable así se comportarán sus costos variables.</Tog>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginTop: 20 }}>
+        La determinación del precio en el corto plazo se basa en la <strong style={{ color: C.text }}>función de producción con un solo insumo variable</strong> y la <strong style={{ color: C.red }}>ley del rendimiento marginal decreciente</strong>.
+      </p>
     </div>
   );
 }
@@ -172,6 +182,9 @@ function ProdSection() {
   return (
     <div>
       <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>De la producción al costo variable</h2>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginBottom: 20, maxWidth: 720 }}>
+        Cuando los rendimientos son <strong style={{ color: C.green }}>crecientes</strong>, el CV crece a tasa decreciente (cóncavo). Cuando son <strong style={{ color: C.red }}>decrecientes</strong>, crece a tasa creciente (convexo).
+      </p>
       <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
         <Btn on={showProd} color={C.green} onClick={() => setShowProd(true)}>Función de Producción</Btn>
         <Btn on={!showProd} color={C.orange} onClick={() => setShowProd(false)}>Curva de Costo Variable</Btn>
@@ -197,6 +210,7 @@ function ProdSection() {
           </LineChart>
         )}
       </ResponsiveContainer>
+      <Box icon="💡"><strong style={{ color: C.text }}>El punto de inflexión de la curva de producción coincide con el de la curva de costo variable</strong>, dividiendo la zona de rendimientos crecientes de la zona de rendimientos decrecientes.</Box>
     </div>
   );
 }
@@ -207,15 +221,18 @@ function TotalSection() {
   return (
     <div>
       <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Costos totales de corto plazo</h2>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginBottom: 20, maxWidth: 720 }}>
+        El <strong style={{ color: C.blue }}>CT</strong> = CF + CV. La distancia vertical entre CT y CV es siempre CF. Según se comporte la productividad del factor variable, así se comportarán los costos variables.
+      </p>
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-        <Btn on={s.f} color={C.purple} onClick={() => setS(p => ({ ...p, f: !p.f }))}>CF</Btn>
-        <Btn on={s.v} color={C.orange} onClick={() => setS(p => ({ ...p, v: !p.v }))}>CV</Btn>
-        <Btn on={s.t} color={C.blue} onClick={() => setS(p => ({ ...p, t: !p.t }))}>CT</Btn>
+        <Btn on={s.f} color={C.purple} onClick={() => setS(p => ({ ...p, f: !p.f }))}>CF (Fijo)</Btn>
+        <Btn on={s.v} color={C.orange} onClick={() => setS(p => ({ ...p, v: !p.v }))}>CV (Variable)</Btn>
+        <Btn on={s.t} color={C.blue} onClick={() => setS(p => ({ ...p, t: !p.t }))}>CT (Total)</Btn>
       </div>
       <ResponsiveContainer width="100%" height={360}>
         <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
           <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
-          <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
+          <XAxis dataKey="q" stroke={C.textDim} fontSize={11} label={{ value: "q", position: "insideBottom", offset: -5, fill: C.textDim, fontSize: 11 }} />
           <YAxis stroke={C.textDim} fontSize={11} />
           <Tooltip content={<Tip />} />
           {s.f && <Line type="monotone" dataKey="FC" stroke={C.purple} strokeWidth={2} dot={false} name="CF" strokeDasharray="8 4" />}
@@ -236,7 +253,10 @@ function AvgSection() {
   const sw = (k) => (!h || h === k) ? 3 : 1;
   return (
     <div>
-      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Costos medios y marginales</h2>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Costos medios y marginales de corto plazo</h2>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginBottom: 10, maxWidth: 720 }}>
+        Las curvas tienen <strong style={{ color: C.text }}>forma de "U"</strong> (excepto CFMe, que siempre disminuye). La forma se basa en la <strong style={{ color: C.text }}>ley del rendimiento marginal decreciente</strong>.
+      </p>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <Btn on={h === "afc"} color={C.purple} onClick={() => setH(h === "afc" ? null : "afc")}>CFMe</Btn>
         <Btn on={h === "avc"} color={C.green} onClick={() => setH(h === "avc" ? null : "avc")}>CVMe</Btn>
@@ -249,16 +269,27 @@ function AvgSection() {
           <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
           <YAxis stroke={C.textDim} fontSize={11} domain={[0, 55]} />
           <Tooltip content={<Tip />} />
-          <Line type="monotone" dataKey="AFC" stroke={C.purple} strokeWidth={sw("afc")} dot={false} opacity={op("afc")} />
-          <Line type="monotone" dataKey="AVC" stroke={C.green} strokeWidth={sw("avc")} dot={false} opacity={op("avc")} />
-          <Line type="monotone" dataKey="ATC" stroke={C.blue} strokeWidth={sw("atc")} dot={false} opacity={op("atc")} />
-          <Line type="monotone" dataKey="MC" stroke={C.red} strokeWidth={sw("mc")} dot={false} opacity={op("mc")} />
+          <Line type="monotone" dataKey="AFC" stroke={C.purple} strokeWidth={sw("afc")} dot={false} name="CFMe" strokeDasharray="6 3" opacity={op("afc")} />
+          <Line type="monotone" dataKey="AVC" stroke={C.green} strokeWidth={sw("avc")} dot={false} name="CVMe" opacity={op("avc")} />
+          <Line type="monotone" dataKey="ATC" stroke={C.blue} strokeWidth={sw("atc")} dot={false} name="CTMe" opacity={op("atc")} />
+          <Line type="monotone" dataKey="MC" stroke={C.red} strokeWidth={sw("mc")} dot={false} name="CMg" opacity={op("mc")} />
           {!h && <ReferenceDot x={15} y={8.75} r={7} fill={C.green} stroke={C.white} strokeWidth={2} />}
           {!h && <ReferenceDot x={20} y={18.75} r={7} fill={C.blue} stroke={C.white} strokeWidth={2} />}
           <ReferenceLine x={q} stroke={C.accent} strokeWidth={1} strokeDasharray="3 3" opacity={0.5} />
         </LineChart>
       </ResponsiveContainer>
-      <input type="range" min={1} max={35} value={q} onChange={e => setQ(+e.target.value)} style={{ width: "100%", accentColor: C.accent, marginTop: 10 }} />
+      <div style={{ marginTop: 16, marginBottom: 10 }}>
+        <label style={{ color: C.textDim, fontSize: 12 }}>q = <strong style={{ color: C.accent, fontSize: 15 }}>{q}</strong></label>
+        <input type="range" min={1} max={35} value={q} onChange={e => setQ(+e.target.value)} style={{ width: "100%", accentColor: C.accent }} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        {[{ l: "CFMe", v: d.AFC, c: C.purple }, { l: "CVMe", v: d.AVC, c: C.green }, { l: "CTMe", v: d.ATC, c: C.blue }, { l: "CMg", v: d.MC, c: C.red }].map((m, i) => (
+          <div key={i} style={{ background: C.card, borderRadius: 10, padding: 12, textAlign: "center", border: `1px solid ${m.c}33` }}>
+            <div style={{ color: m.c, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{m.l}</div>
+            <div style={{ color: C.text, fontSize: 20, fontWeight: 300, marginTop: 3 }}>{m.v.toFixed(2)}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -267,16 +298,33 @@ function CrossSection() {
   const data = useMemo(() => generateCostData(), []);
   return (
     <div>
-      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Intersecciones Críticas</h2>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Análisis de las intersecciones</h2>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginBottom: 12, maxWidth: 720 }}>
+        El <strong style={{ color: C.red }}>CMg</strong> cruza al <strong style={{ color: C.green }}>CVMe</strong> y al <strong style={{ color: C.blue }}>CTMe</strong> exactamente en sus <em>puntos mínimos</em>.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+        <div style={{ background: C.card, borderRadius: 10, padding: 14, borderTop: `3px solid ${C.red}` }}>
+          <div style={{ fontSize: 12, color: C.red, fontWeight: 600, marginBottom: 4 }}>CMg &lt; CMe → CMe ↓</div>
+          <p style={{ color: C.textDim, fontSize: 12, margin: 0 }}>El promedio desciende.</p>
+        </div>
+        <div style={{ background: C.card, borderRadius: 10, padding: 14, borderTop: `3px solid ${C.accent}` }}>
+          <div style={{ fontSize: 12, color: C.accent, fontWeight: 600, marginBottom: 4 }}>CMg = CMe → CMe mín</div>
+          <p style={{ color: C.textDim, fontSize: 12, margin: 0 }}>Punto de intersección.</p>
+        </div>
+        <div style={{ background: C.card, borderRadius: 10, padding: 14, borderTop: `3px solid ${C.blue}` }}>
+          <div style={{ fontSize: 12, color: C.blue, fontWeight: 600, marginBottom: 4 }}>CMg &gt; CMe → CMe ↑</div>
+          <p style={{ color: C.textDim, fontSize: 12, margin: 0 }}>El promedio sube.</p>
+        </div>
+      </div>
       <ResponsiveContainer width="100%" height={420}>
         <LineChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
           <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
           <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
           <YAxis stroke={C.textDim} fontSize={11} domain={[0, 50]} />
           <Tooltip content={<Tip />} />
-          <Line type="monotone" dataKey="AVC" stroke={C.green} strokeWidth={2.5} dot={false} />
-          <Line type="monotone" dataKey="ATC" stroke={C.blue} strokeWidth={2.5} dot={false} />
-          <Line type="monotone" dataKey="MC" stroke={C.red} strokeWidth={3} dot={false} />
+          <Line type="monotone" dataKey="AVC" stroke={C.green} strokeWidth={2.5} dot={false} name="CVMe" />
+          <Line type="monotone" dataKey="ATC" stroke={C.blue} strokeWidth={2.5} dot={false} name="CTMe" />
+          <Line type="monotone" dataKey="MC" stroke={C.red} strokeWidth={3} dot={false} name="CMg" />
           <ReferenceDot x={15} y={8.75} r={8} fill={C.green} stroke={C.white} strokeWidth={2.5} />
           <ReferenceDot x={20} y={18.75} r={8} fill={C.blue} stroke={C.white} strokeWidth={2.5} />
         </LineChart>
@@ -288,8 +336,15 @@ function CrossSection() {
 function LPSection() {
   return (
     <div style={{ maxWidth: 780, margin: "0 auto" }}>
-      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 12 }}>Largo Plazo</h2>
-      <p style={{ color: C.textMuted, fontSize: 14 }}>En el largo plazo todos los costos son variables. No existen costos fijos.</p>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>Funciones de costo de largo plazo</h2>
+      <div style={{ borderLeft: `3px solid ${C.accent}`, paddingLeft: 16, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+        {["A largo plazo, ninguna parte de la producción es fija.", "No existen costos fijos a largo plazo.", "El largo plazo se puede considerar como un plan de futuro."].map((t, i) => (
+          <p key={i} style={{ margin: 0, color: C.textMuted, fontSize: 13, lineHeight: 1.6 }}>{t}</p>
+        ))}
+      </div>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
+        La empresa puede ajustar cada factor para alcanzar el costo más bajo.
+      </p>
     </div>
   );
 }
@@ -298,20 +353,39 @@ function EnvSection() {
   const data = useMemo(() => generateEnvelopeData(), []);
   const [qD, setQD] = useState(30);
   const pt = data[qD - 1];
+
+  const best = useMemo(() => {
+    let b = PLANT_DEFS[0], bv = Infinity;
+    PLANT_DEFS.forEach(p => { const v = sracVal(p, qD); if (v < bv) { bv = v; b = p; } });
+    return b;
+  }, [qD]);
+
   return (
     <div>
-      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>La Envolvente</h2>
+      <h2 style={{ fontSize: 26, fontWeight: 300, color: C.accent, marginBottom: 8 }}>La envolvente: CMe de largo plazo</h2>
+      <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, marginBottom: 10, maxWidth: 720 }}>
+        La <strong style={{ color: C.accent }}>función de costo medio a largo plazo</strong> es tangente a las curvas SRAC.
+      </p>
       <ResponsiveContainer width="100%" height={440}>
         <LineChart data={data} margin={{ top: 15, right: 30, left: 10, bottom: 10 }}>
           <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
           <XAxis dataKey="q" stroke={C.textDim} fontSize={11} />
           <YAxis stroke={C.textDim} fontSize={11} domain={[0, 14]} />
           <Tooltip content={<Tip />} />
-          <Line type="monotone" dataKey="LRAC" stroke={C.accent} strokeWidth={3.5} dot={false} />
+          {PLANT_DEFS.map((p, i) => (
+            <Line key={i} type="monotone" dataKey={`S${i+1}`} stroke={p.color} strokeWidth={1.4} dot={false} name={p.label} strokeDasharray="4 3" connectNulls={false} opacity={0.55} />
+          ))}
+          <Line type="monotone" dataKey="LRAC" stroke={C.accent} strokeWidth={3.5} dot={false} name="CMe LP" />
           <ReferenceLine x={qD} stroke={C.white} strokeWidth={1} strokeDasharray="3 3" opacity={0.3} />
+          {pt && <ReferenceDot x={qD} y={pt.LRAC} r={7} fill={C.accent} stroke={C.white} strokeWidth={2} />}
         </LineChart>
       </ResponsiveContainer>
-      <input type="range" min={1} max={72} value={qD} onChange={e => setQD(+e.target.value)} style={{ width: "100%", accentColor: C.accent, marginTop: 10 }} />
+      <div style={{ marginTop: 16, marginBottom: 12 }}>
+        <input type="range" min={1} max={72} value={qD} onChange={e => setQD(+e.target.value)} style={{ width: "100%", accentColor: C.accent }} />
+        <div style={{ color: C.textDim, fontSize: 12, marginTop: 10 }}>
+          q = <strong>{qD}</strong> | Mejor planta: <strong style={{ color: best.color }}>{best.label}</strong>
+        </div>
+      </div>
     </div>
   );
 }
@@ -337,15 +411,15 @@ function App() {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif" }}>
       <header style={{ position: "sticky", top: 0, zIndex: 100, background: C.bg + "ee", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.border}`, padding: "10px 20px" }}>
-        <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           {SECTIONS.map(s => (
-            <button key={s.id} onClick={() => setSec(s.id)} style={{ background: sec === s.id ? C.accent + "22" : "transparent", border: "none", color: sec === s.id ? C.accent : C.textDim, padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: sec === s.id ? 600 : 400 }}>{s.label}</button>
+            <button key={s.id} onClick={() => setSec(s.id)} style={{ background: sec === s.id ? C.accent + "22" : "transparent", border: "none", color: sec === s.id ? C.accent : C.textDim, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: sec === s.id ? 600 : 400 }}>{s.icon} {s.label}</button>
           ))}
         </div>
       </header>
-      <main style={{ maxWidth: 860, margin: "0 auto", padding: "36px 20px" }}>
+      <main style={{ maxWidth: 860, margin: "0 auto", padding: "36px 20px 80px" }}>
         {render()}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 36 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 36, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
           {prev && <button onClick={() => setSec(prev.id)} style={{ color: C.textDim, background: "transparent", border: "none", cursor: "pointer" }}>← Atrás</button>}
           {next && <button onClick={() => setSec(next.id)} style={{ color: C.accent, background: "transparent", border: "none", cursor: "pointer" }}>Siguiente →</button>}
         </div>
